@@ -4,8 +4,6 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-import requests
-from astropy.table import Table
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 
@@ -20,40 +18,6 @@ def pathglob(pattern: Union[str, Path]) -> list[str]:
     :rtype: list[str]
     """
     return glob.glob(str(pattern))
-
-
-def get_bad_id_list(
-    url: str, id_col: str = "ODOMETER", check_cols: Optional[list[str]] = None
-) -> list[str]:
-    """
-    Get list of bad observation IDs/odometers from a google sheet.
-
-    One column must be the observation IDs. Other columsn are expected to have
-    "TRUE" or "FALSE" values with any column name.
-
-    :param url: URL of bad odometer sheet
-    :type url: str
-    :return: pandas serries with bad odo strings
-    :rtype: pd.Series
-    """
-    # fetch data
-    data = requests.get(url)
-    df = Table.read(data.text, format="ascii").to_pandas()
-
-    if check_cols is None:
-        check_cols = df.columns.drop(id_col)
-    elif not np.all([cc in df.columns for cc in check_cols]):
-        raise ValueError("check_cols must be Google sheet columns")
-
-    # Booleans are read as text with requests + astropy/pandas -> convert
-    df[id_col] = df[id_col].astype(str)  # ensure strings
-    df[check_cols] = df[check_cols] == "TRUE"
-
-    # Keep only values marked in check_cols
-    mask = df[check_cols].any(axis=1)
-    df = df[mask]
-
-    return df[id_col].to_list()
 
 
 def get_wmean(data: DataFrame, col_pairs: dict[str, str]) -> Series:
