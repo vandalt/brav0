@@ -417,3 +417,40 @@ def keep_obj_list(
         raise ValueError(f"obj_col={obj_col} is not an index or a column.")
 
     return data
+
+
+def add_archive_name(
+    data: DataFrame,
+    obj_label: str,
+    extra_maps: Optional[dict[str, str]] = None,
+) -> DataFrame:
+    """
+    Add column with exoplanet archive names to dataframes.
+
+    Replaces GLXXX and GJXXX with GJ XXX.
+
+    :param data: Initial dataframe
+    :type data: DataFrame
+    :param obj_label: Label of object index
+    :type obj_label: str
+    :param extra_maps: Extra mappings from object name to archive name
+                       (ovevrrides default subsitutions), defaults to None
+    :type extra_maps: Optional[Dict]
+    :return: Dataframe with an ARCHIVE column
+    :rtype: DataFrame
+    """
+    data = data.copy()
+
+    # Exoplanet archive has all GL000 and GJ000 with GJ 000
+    obj_names = data.index.get_level_values(obj_label)
+    obj_mask = ~obj_names.isin(list(extra_maps))
+    data["ARCHIVE"] = obj_names.copy()
+    data.loc[obj_mask, "ARCHIVE"] = obj_names[obj_mask].str.replace(
+        "^GJ|GL", "GJ ", regex=True
+    )
+
+    # If we have user-provided values, they replace the string manips above
+    if extra_maps is not None:
+        data.ARCHIVE = data.ARCHIVE.replace(extra_maps)
+
+    return data
