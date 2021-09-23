@@ -1,4 +1,5 @@
 import glob
+import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -144,3 +145,19 @@ def get_binned_data(
         binned_data = grouped_data.agg(agg_funcs)
 
     return binned_data
+
+
+def get_obj_vals(
+    data: DataFrame, obj_col: str = "OBJECT", unique: bool = False
+):
+
+    if obj_col in data.index.names:
+        ovals = data.index.get_level_values(obj_col).values
+    elif obj_col in data.columns:
+        msg = f"{obj_col} is not an index." "Trying to filter with columns"
+        warnings.warn(msg)
+        ovals = data[obj_col].values
+    else:
+        raise ValueError(f"obj_col={obj_col} is not an index or a column.")
+
+    return ovals.values if not unique else np.unique(ovals)
