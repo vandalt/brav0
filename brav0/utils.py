@@ -20,6 +20,19 @@ def pathglob(pattern: Union[str, Path]) -> list[str]:
     return glob.glob(str(pattern))
 
 
+def append_to_dirpath(path: Path, extra: str) -> Path:
+    """
+    Add a string to a path object (usually useful for directories)
+
+    :param path: Initial path
+    :type path: Path
+    :param extra: Appended string
+    :type extra: str
+    :return: Path with the string appended to its basename
+    :rtype: Path
+    """
+    return path.parent / (path.name + extra)
+
 def get_wmean(data: DataFrame, col_pairs: dict[str, str]) -> Series:
     """
     Get the weighted mean and error of a dataframe using column pairs
