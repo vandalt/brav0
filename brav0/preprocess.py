@@ -409,12 +409,11 @@ def keep_obj_list(
     if obj_col in data.index.names:
         data = data.loc[obj_list]
     elif obj_col in data.columns:
-
-        obj_mask = data[obj_col].isin(obj_list)
-
-        data = data[obj_mask]
-    else:
         msg = f"{obj_col} is not an index." "Trying to filter with columns"
         warnings.warn(msg)
+        obj_mask = data[obj_col].isin(obj_list)
+        data = data[obj_mask]
+    else:
+        raise ValueError(f"obj_col={obj_col} is not an index or a column.")
 
     return data
