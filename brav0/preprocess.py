@@ -234,7 +234,7 @@ def preprocess(
     nsig_clip: float = 3.0,
     group_col: str = Optional[None],
     equant_col: Optional[str] = None,
-    err_quant_cut: float = 0.95,
+    equant_cut: float = 0.95,
     snr_col: Optional[str] = None,
     snr_goal_col: Optional[str] = None,
     snr_frac: float = 0.7,
@@ -266,12 +266,12 @@ def preprocess(
 
     if "equant" in plist:
         if (
-            err_quant_cut is not None
+            equant_cut is not None
             and equant_col is not None
-            and (0.0 > err_quant_cut or err_quant_cut > 1.0)
+            and (0.0 > equant_cut or equant_cut > 1.0)
         ):
             raise ValueError("err_quant_cut must be between 0 and 1")
-        elif err_quant_cut is None or equant_col is None:
+        elif equant_cut is None or equant_col is None:
             warnings.warn(
                 "snr_col and snr_goal_col are needed to run SNR cut. Skipping."
             )
@@ -279,7 +279,7 @@ def preprocess(
             data = filter_equant(
                 data,
                 equant_col,
-                err_quant_cut,
+                equant_cut,
                 group_name=group_col,
             )
 
