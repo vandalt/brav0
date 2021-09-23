@@ -12,116 +12,29 @@ from pandas.core.series import Series
 import brav0.utils as ut
 
 
+# =============================================================================
+# Define helper functions
+# =============================================================================
 def filter_odo(files: Series, odos: Union[Series, list[str]]) -> Series:
     return ~files.str[:7].isin(odos)
 
 
-FILTER_METHODS = {
+# All bad ID filtering methods
+ID_FILTER_METHODS = {
     "odo": filter_odo,
 }
-
-
-def mask_bad_ids(
-    data: DataFrame,
-    bad_ids: Union[Series, list[str]],
-    filter_col: str,
-    filter_method: Union[str, Callable] = "odo",
-):
-    if filter_method in FILTER_METHODS:
-        keep_mask = FILTER_METHODS[filter_method](data[filter_col], bad_ids)
-    else:
-        try:
-            keep_mask = filter_method(data[filter_col], bad_ids)
-        except TypeError:
-            raise ValueError(
-                "filter_method must be either a string for know FILTER_METHODS"
-                " or a function that takes data series and bad IDs series."
-            )
-        if not isinstance(keep_mask, Series) or keep_mask.dtype != "bool":
-            raise TypeError("filter_method must return a pandas bool series")
-
-    return keep_mask
 
 
 def get_clip_mask(x: Series, nsig: float) -> np.ndarray:
     return ~sigma_clip(x.values, sigma=nsig).mask
 
 
-def mask_sig_clip(
-    data: DataFrame,
-    clip_col: str,
-    nsig: float = 3.0,
-    group_name: Optional[str] = None,
-) -> Series:
-    """
-    Perform sigma clipping on a pandas dataframe using a single column.
-
-    :param data: Input dataframe
-    :type data: DataFrame
-    :param clip_col: Label of column used for clipping
-    :type clip_col: str
-    :param nsig: Number of sigmas to clip from, defaults to 3
-    :type nsig: int, optional
-    :param group_name: Name of the index/column used to group the dataframe.
-                       The clipping is done per group.  Useful to group per
-                       object or run, defaults to None
-    :type group_name: Optional[str], optional
-    :return: Dataset after sigma clipping of outliers
-    :rtype: DataFrame
-    """
-
-    series = data[clip_col]
-    if group_name is not None:
-        clipped_mask = series.groupby(group_name).transform(
-            get_clip_mask, nsig
-        )
-    else:
-        clipped_mask = get_clip_mask(series, nsig)
-
-    return clipped_mask
-
-
-def mask_snr_cut(
-    data: DataFrame, snr_col: str, snr_goal_col: str, snr_frac: int = 0.7
-):
-    return (data[snr_col] / data[snr_goal_col]) >= snr_frac
-
-
-def mask_quant(
-    data: DataFrame,
-    qcol: str,
-    quant: float = 0.95,
-    group_name: Optional[str] = None,
-) -> DataFrame:
-    """
-    Filter dataframe based to keep only values below a given quantile of a
-    column.
-
-    :param data: Input dataframe
-    :type data: DataFrame
-    :param qcol: Column to use for quantile calculation
-    :type qcol: str
-    :param quant: Quantile to use, defaults to 0.95
-    :type quant: float, optional
-    :param group_name: Name of the index/column used to group the dataframe,
-                       useful to group per object or run before filtering,
-                       defaults to None
-    :type group_name: Optional[str], optional
-    :return: Dataset filtered with quantile
-    :rtype: DataFrame
-    """
-
-    series = data[qcol]
-    if group_name is not None:
-        qvals = series.groupby(group_name).quantile(quant)
-        quant_align, data_align = qvals.align(data)
-        assert data_align.equals(data)
-        mask = series <= quant_align
-    else:
-        qval = series.quantile(quant)
-        mask = series <= qval
-
-    return mask
+def keep_self_template(data: DataFrame, file_col: str = "RVFILE") -> DataFrame:
+    file_series = pd.Series(data.index.get_level_values(file_col).unique())
+    keep_files = file_series[
+        file_series.str[:-4].str.split("_").agg(lambda x: x[1] == x[2])
+    ]
+    return data.loc[keep_files]
 
 
 def get_bad_id_list(
@@ -158,14 +71,224 @@ def get_bad_id_list(
     return df[id_col].to_list()
 
 
-def keep_self_mask(data: DataFrame, file_col: str = "RVFILE") -> DataFrame:
-    file_series = pd.Series(data.index.get_level_values(file_col).unique())
-    keep_files = file_series[
-        file_series.str[:-4].str.split("_").agg(lambda x: x[1] == x[2])
-    ]
-    return data.loc[keep_files]
+# =============================================================================
+# Data Filtering functions
+# =============================================================================
+def filter_nan_values(data: DataFrame, used_cols: Optional[list[str]] = None):
+    """
+    Filter NaNs in columns that are used for futher calculations
+
+        :param data: Dataframe with full dataset
+        :type data: DataFrame
+        :param used_cols: Columns to check, None checks all, defaults to None
+        :type used_cols: Optional[list[str]], optional
+    """
+
+    return data.dropna(subset=used_cols).copy()
 
 
+def filter_bad_ids(
+    data: DataFrame,
+    bad_ids: Union[Series, list[str], str],
+    filter_col: str,
+    filter_method: Union[str, Callable] = "odo",
+):
+    """
+    Filter observation IDs that are flagged as badded, either from an
+    online Google Sheet or from a Series or list.
+
+    :param data: Dataset
+    :type data: DataFrame
+    :param bad_ids: Bad IDs collection or url
+    :type bad_ids: Union[Series, list[str], str]
+    :param filter_col: Column to use to filter IDs
+    :type filter_col: str
+    :param filter_method: Filtering methods to apply on filter_col. This is
+                          either the name of a known method
+                          (see preprocess.FILTER_METHOD) or a function taking
+                          the ID column and a bad IDs as input. Must return a
+                          boolean series.
+                          Defaults to "odo"
+    :type filter_method: Union[str, Callable], optional
+    :raises ValueError: If filter_method is not an known method or a function
+    :raises TypeError: If the filter_method does not return a boolean series.
+    """
+    if isinstance(bad_ids, str):
+        if bad_ids.startswith("https://"):
+            bad_ids = get_bad_id_list(bad_ids)
+        else:
+            bad_ids = [bad_ids]
+
+    if filter_method in ID_FILTER_METHODS:
+        keep_mask = ID_FILTER_METHODS[filter_method](data[filter_col], bad_ids)
+    else:
+        try:
+            keep_mask = filter_method(data[filter_col], bad_ids)
+        except TypeError:
+            raise ValueError(
+                "filter_method must be either a string for know FILTER_METHODS"
+                " or a function that takes data series and bad IDs series."
+            )
+        if not isinstance(keep_mask, Series) or keep_mask.dtype != "bool":
+            raise TypeError("filter_method must return a pandas bool series")
+
+    return data[keep_mask].copy()
+
+
+def filter_sig_clip(
+    data: DataFrame,
+    clip_col: str,
+    nsig: float = 3.0,
+    group_name: Optional[str] = None,
+) -> Series:
+    """
+    Perform sigma clipping on a pandas dataframe using a single column.
+
+    :param data: Input dataframe
+    :type data: DataFrame
+    :param clip_col: Label of column used for clipping
+    :type clip_col: str
+    :param nsig: Number of sigmas to clip from, defaults to 3
+    :type nsig: int, optional
+    :param group_name: Name of the index/column used to group the dataframe.
+                       The clipping is done per group.  Useful to group per
+                       object or run, defaults to None
+    :type group_name: Optional[str], optional
+    :return: Dataset after sigma clipping of outliers
+    :rtype: DataFrame
+    """
+
+    series = data[clip_col]
+    if group_name is not None:
+        clipped_mask = series.groupby(group_name).transform(
+            get_clip_mask, nsig
+        )
+    else:
+        clipped_mask = get_clip_mask(series, nsig)
+
+    return data[clipped_mask].copy()
+
+
+def filter_snr_cut(
+    data: DataFrame, snr_col: str, snr_goal_col: str, snr_frac: int = 0.7
+):
+    mask = (data[snr_col] / data[snr_goal_col]) >= snr_frac
+    return data[mask].copy()
+
+
+def filter_equant(
+    data: DataFrame,
+    qcol: str,
+    quant: float = 0.95,
+    group_name: Optional[str] = None,
+) -> DataFrame:
+    """
+    Filter dataframe based to keep only values below a given quantile of a
+    column.
+
+    :param data: Input dataframe
+    :type data: DataFrame
+    :param qcol: Column to use for quantile calculation
+    :type qcol: str
+    :param quant: Quantile to use, defaults to 0.95
+    :type quant: float, optional
+    :param group_name: Name of the index/column used to group the dataframe,
+                       useful to group per object or run before filtering,
+                       defaults to None
+    :type group_name: Optional[str], optional
+    :return: Dataset filtered with quantile
+    :rtype: DataFrame
+    """
+
+    series = data[qcol]
+    if group_name is not None:
+        qvals = series.groupby(group_name).quantile(quant)
+        quant_align, data_align = qvals.align(data)
+        assert data_align.equals(data)
+        mask = series <= quant_align
+    else:
+        qval = series.quantile(quant)
+        mask = series <= qval
+
+    return data[mask]
+
+
+# -----------------------------------------------------------------------------
+# Combined cleanup function
+# -----------------------------------------------------------------------------
+PP_CLEAN_FUNCTIONS = {
+    "nan": filter_nan_values,
+    "sigma": filter_sig_clip,
+    "ID": filter_bad_ids,
+    "SNR": filter_snr_cut,
+    "error": filter_equant,
+}
+
+
+def preprocess(
+    data: DataFrame,
+    plist: list[str] = None,
+    bad_id_url: Optional[str] = None,
+    id_filter_col: Optional[str] = None,
+    clip_col: Optional[str] = None,
+    nsig_clip: float = 3.0,
+    group_col: str = Optional[None],
+    equant_col: Optional[str] = None,
+    err_quant_cut: float = 0.95,
+    snr_col: Optional[str] = None,
+    snr_goal_col: Optional[str] = None,
+    snr_frac: float = 0.7,
+    used_cols: Optional[list[str]] = None,
+):
+
+    # TODO: A lot of the checks here should be in their respective mask func
+    if "nan" in plist:
+        data = filter_nan_values(data, used_cols)
+
+    if "ID" in plist:
+        data = filter_bad_ids(data, bad_id_url, id_filter_col)
+
+    if "sigma" in plist:
+        data = filter_sig_clip(
+            data,
+            clip_col,
+            nsig=nsig_clip,
+            group_name=group_col,
+        )
+
+    if "SNR" in plist:
+        if snr_col is None or snr_goal_col is None:
+            warnings.warn(
+                "snr_col and snr_goal_col are needed to run SNR cut. Skipping."
+            )
+        else:
+            data = filter_snr_cut(data, snr_col, snr_goal_col, snr_frac)
+
+    if "equant" in plist:
+        if (
+            err_quant_cut is not None
+            and equant_col is not None
+            and (0.0 > err_quant_cut or err_quant_cut > 1.0)
+        ):
+            raise ValueError("err_quant_cut must be between 0 and 1")
+        elif err_quant_cut is None or equant_col is None:
+            warnings.warn(
+                "snr_col and snr_goal_col are needed to run SNR cut. Skipping."
+            )
+        else:
+            data = filter_equant(
+                data,
+                equant_col,
+                err_quant_cut,
+                group_name=group_col,
+            )
+
+    return data
+
+
+# =============================================================================
+# Extra functions to format dataframe and prepare analysis
+# =============================================================================
 def index_with_obj(
     df: DataFrame,
     file_obj_ind: int,
@@ -212,7 +335,7 @@ def index_with_obj(
 
     if (df.reset_index().groupby(obj_col).nunique()[file_col] > 1).any():
         if force_self_mask:
-            df = keep_self_mask(df)
+            df = keep_self_template(df)
         else:
             msg = "Dataframe should not have more than one file per object"
             raise ValueError(msg)
@@ -231,6 +354,19 @@ def bin_dataset(
     svrad_col: str,
     extra_pairs: Optional[dict[str, str]] = None,
 ):
+    """
+    Get binned dataset
+
+    :param data: Full dataset
+    :type data: DataFrame
+    :param vrad_col: Column name with RV values
+    :type vrad_col: str
+    :param svrad_col: Column name with RV errors
+    :type svrad_col: str
+    :param extra_pairs: Dictionary of extra value-error column pairs that
+                        don't start with 0, defaults to None
+    :type extra_pairs: Optional[dict[str, str]], optional
+    """
 
     vrad_cols = data.columns[data.columns.str.startswith(vrad_col)].tolist()
     svrad_cols = data.columns[data.columns.str.startswith(svrad_col)].tolist()
@@ -245,16 +381,28 @@ def bin_dataset(
 def keep_obj_list(
     data: DataFrame, obj_list: list[str], obj_col: str = "OBJECT"
 ):
+    """
+    Fitler dataset to keep objects from a list
+
+    :param data: Full dataset
+    :type data: DataFrame
+    :param obj_list: List of objects to keep
+    :type obj_list: list[str]
+    :param obj_col: Label of object column, defaults to "OBJECT"
+    :type obj_col: str, optional
+    """
+
+    data = data.copy()
 
     if obj_list is None:
         warnings.warn(
             "obj_list is None, this will do nothing",
             category=RuntimeWarning,
         )
-        return
+        return data
     elif len(obj_list) == 0:
         warnings.warn("obj_list is an empty list. This will do nothing.")
-        return
+        return data
     elif isinstance(obj_list, str):
         obj_list = [obj_list]
 
@@ -268,89 +416,5 @@ def keep_obj_list(
     else:
         msg = f"{obj_col} is not an index." "Trying to filter with columns"
         warnings.warn(msg)
-
-    return data
-
-
-def preprocess(
-    data: DataFrame,
-    bad_id_url: Optional[str] = None,
-    id_filter_col: Optional[str] = None,
-    clip_col: Optional[str] = None,
-    nsig_clip: float = 3.0,
-    group_col: str = Optional[None],
-    equant_col: Optional[str] = None,
-    err_quant_cut: float = 0.95,
-    snr_col: Optional[str] = None,
-    snr_goal_col: Optional[str] = None,
-    snr_frac: float = 0.7,
-    used_cols: Optional[list[str]] = None,
-):
-
-    # TODO: A lot of the checks here should be in their respective mask func
-
-    data = data.dropna(subset=used_cols)
-
-    # -------------------------------------------------------------------------
-    # Remove bad odometers and do sigma clipping for outliers
-    # -------------------------------------------------------------------------
-    if bad_id_url is not None:
-        bad_id_list = get_bad_id_list(bad_id_url)
-        mask = mask_bad_ids(data, bad_id_list, id_filter_col)
-        data = data[mask]
-    if nsig_clip is not None and nsig_clip > 0.0:
-        mask = mask_sig_clip(
-            data,
-            clip_col,
-            nsig=nsig_clip,
-            group_name=group_col,
-        )
-        data = data[mask]
-
-    # -------------------------------------------------------------------------
-    # If required parameters are passed, do snr cut
-    # -------------------------------------------------------------------------
-    if (
-        snr_col is not None
-        and snr_goal_col is not None
-        and snr_frac is not None
-    ):
-        if not 0.0 <= snr_frac <= 1.0:
-            raise ValueError("snr_frac must be between 0 and 1")
-        do_snr_cut = True
-    # if some but not all are set, raise error
-    elif (
-        snr_col is not None or snr_goal_col is not None or snr_frac is not None
-    ):
-        msg = "All or none of snr_col, snr_goal_col, snr_frac must be set"
-        raise ValueError(msg)
-    else:
-        do_snr_cut = False
-
-    if do_snr_cut:
-        mask = mask_snr_cut(data, snr_col, snr_goal_col, snr_frac)
-        data = data[mask]
-
-    # -------------------------------------------------------------------------
-    # If required parameters are passed, do error quantile clipping
-    # -------------------------------------------------------------------------
-    # TODO: simplify logic
-    if (
-        err_quant_cut is not None
-        and 0.0 <= err_quant_cut < 1.0
-        and equant_col is not None
-    ) or equant_col is None:
-        pass
-    else:
-        raise ValueError("err_quant_cut must be between 0 and 1")
-
-    if equant_col is not None:
-        mask = mask_quant(
-            data,
-            equant_col,
-            err_quant_cut,
-            group_name=group_col,
-        )
-        data = data[mask]
 
     return data
