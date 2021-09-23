@@ -2,8 +2,8 @@
 Functions to read and write ZP calibration data
 """
 import os
-from typing import Union
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
 from astropy.table import Table
@@ -39,3 +39,14 @@ def source_tables(
 
 def load_df(path: Union[str, Path]) -> DataFrame:
     return pd.read_csv(path, index_col=[0, 1])
+
+
+def save_df(data, path: Union[str, Path], force: bool = False) -> None:
+    path = Path(path)
+
+    if path.exists() and not force:
+        raise FileExistsError(
+            f"File {path} exists. Use force=True to overwrite"
+        )
+
+    data.to_csv(path)
