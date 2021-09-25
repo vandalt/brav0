@@ -87,6 +87,19 @@ def filter_nan_values(data: DataFrame, used_cols: Optional[list[str]] = None):
     return data.dropna(subset=used_cols).copy()
 
 
+def sort_dataset(data: DataFrame, time_col: str):
+    """
+    Filter NaNs in columns that are used for futher calculations
+
+        :param data: Dataframe with full dataset
+        :type data: DataFrame
+        :param time_col: Time column label
+        :type time_col: str
+    """
+
+    return data.sort_values(time_col)
+
+
 def filter_bad_ids(
     data: DataFrame,
     bad_ids: Union[Series, list[str], str],
@@ -241,6 +254,7 @@ def preprocess(
     equant_col: Optional[str] = None,
     equant_cut: float = 0.95,
     snr_col: Optional[str] = None,
+    time_col: Optional[str] = None,
     snr_goal_col: Optional[str] = None,
     snr_frac: float = 0.7,
     used_cols: Optional[list[str]] = None,
@@ -249,6 +263,11 @@ def preprocess(
     # TODO: A lot of the checks here should be in their respective mask func
     if "nan" in plist:
         data = filter_nan_values(data, used_cols)
+
+    if "sort" in plist:
+        if time_col is None:
+            raise ValueError("time_col is required to sort the data")
+        data = sort_dataset(data, time_col)
 
     if "ID" in plist:
         data = filter_bad_ids(data, bad_id_url, id_filter_col)
