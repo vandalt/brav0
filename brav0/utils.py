@@ -161,3 +161,12 @@ def get_obj_vals(
         raise ValueError(f"obj_col={obj_col} is not an index or a column.")
 
     return ovals.values if not unique else np.unique(ovals)
+
+
+def tt_atleast_1d(x):
+    """
+    Attempt of theano equiavalent to numpy atleast_1d
+    """
+    if x.broadcastable == ():
+        return x.dimshuffle("x")
+    return x
