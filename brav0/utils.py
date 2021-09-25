@@ -1,12 +1,17 @@
 import glob
+import pickle
 import warnings
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
+import yaml
+from box import Box
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
+from xarray.core.dataset import Dataset
 
 
 def pathglob(pattern: Union[str, Path]) -> list[str]:
@@ -33,6 +38,7 @@ def append_to_dirpath(path: Path, extra: str) -> Path:
     :rtype: Path
     """
     return path.parent / (path.name + extra)
+
 
 def get_wmean(data: DataFrame, col_pairs: dict[str, str]) -> Series:
     """
@@ -170,3 +176,65 @@ def tt_atleast_1d(x):
     if x.broadcastable == ():
         return x.dimshuffle("x")
     return x
+
+
+def load_config(path: Union[str, Path]):
+    with open(path) as ymlfile:
+        config = yaml.safe_load(ymlfile)
+
+    return Box(config)
+
+
+def make_unique_dir(path: Union[str, Path]) -> Path:
+    path = Path(path)
+    path_ini = path
+    while path.exists():
+        # This should not block more than one second unless dir already
+        # exist for some reason. Still probably safer/clearer than _0, _1, etc.
+        ext_time = "_" + datetime.now().strftime("%y%m%d_%H%M%S")
+        path = append_to_dirpath(path_ini, ext_time)
+
+    path.mkdir(parents=True)
+
+    return path
+
+
+def save_map_dict(map_dict: dict, path: Union[Path, str], force: bool = False):
+    path = Path(path)
+    if path.exists() and not force:
+        raise FileExistsError(
+            f"File {path} exists. Use force=True to overwrite"
+        )
+    pkl_ext = [".pkl", ".pickle"]
+    if path.suffix not in pkl_ext:
+        raise ValueError(
+            "Please use one of the following file extension for a pickle"
+            f" file: {pkl_ext}"
+        )
+
+    with open(path, "wb") as pfile:
+        pickle.dump(map_dict, pfile)
+
+
+def get_config_params(config: Box):
+    model_params = config.model_parameters
+    if isinstance(model_params, str):
+        if not model_params.endswith(".yml"):
+            raise ValueError(
+                "model_params should be a dictionary or a yml file"
+            )
+        params_file = Path(model_params)
+        # If not an absolut path, assume from config dir
+        if not params_file.is_absolute():
+            parent_dir = Path(config.config).parent
+            params_file = parent_dir / params_file
+        model_params = load_config(params_file)
+        if "model_parameters" in model_params:
+            model_params = model_params["model_parameters"]
+        return model_params
+    elif isinstance(model_params, dict):
+        return model_params
+    else:
+        raise TypeError(
+            "model_parameters should be a dictionary or a path to a file"
+        )
