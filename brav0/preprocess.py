@@ -117,7 +117,12 @@ def filter_bad_ids(
         if bad_ids.startswith("https://"):
             bad_ids = get_bad_id_list(bad_ids)
         else:
-            bad_ids = [bad_ids]
+            msg = (
+                "Only https links are supported for the bad ID sheet."
+                " Make sure your string starts with 'https://'."
+                " If this is a single bad ID string, put it in a list."
+            )
+            raise ValueError(msg)
 
     if filter_method in ID_FILTER_METHODS:
         keep_mask = ID_FILTER_METHODS[filter_method](data[filter_col], bad_ids)
