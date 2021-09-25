@@ -56,7 +56,7 @@ def get_archive_map(data: DataFrame, row_col: Optional[str] = "ROW") -> Series:
     :return: Series mapping object names to archive names
     :rtype: Series
     """
-    archive_map = data.ARCHIVE.drop_duplicates().droplevel(row_col)
+    archive_map = data.ARCHIVE.drop_duplicates()
     if row_col is not None:
         archive_map = archive_map.droplevel(row_col)
     return archive_map
