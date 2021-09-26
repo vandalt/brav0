@@ -217,8 +217,17 @@ def model_zp(config: Box):
         pred_med_df_model.to_csv(model_dir / "zp_med_model.csv", index=False)
 
     if not (config.optimize or config.sample):
-        # If not optimization or sampling, use test values to evaluate model
 
+        # If not optimization or sampling, use test values to evaluate model
+        # and offsets
+
+        off_keys = ut.get_offset_keys(zpmodel)
+        off_vars = [zpmodel[k] for k in off_keys]
+        off_values = np.array(pmx.eval_in_model(off_vars, model=zpmodel))
+        off_series = pd.Series(off_values, index=off_keys)
+        off_series.index = offsets.index.str.split("_").str[0]
+        off_series.index.name = "OBJECT"
+        off_series.to_csv(model_dir / "offsets_test.csv")
         pred = pmx.eval_in_model(zpmodel.pred, model=zpmodel)
         pred_std = pmx.eval_in_model(zpmodel.pred_std, model=zpmodel)
         pred_test = pd.DataFrame(
