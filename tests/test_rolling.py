@@ -96,7 +96,6 @@ def test_rolling_no_change(data_dir, roll_result, tol, round_equal):
     if not npval:
         val = val.eval()
         err = err.eval()
-        breakpoint()
 
     old_val, old_err = np.loadtxt(data_dir / f"{name}.txt", unpack=True)
 
