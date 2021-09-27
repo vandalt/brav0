@@ -89,6 +89,11 @@ def preprocess(config: Box):
     if config.verbose:
         print("Preprocessing done")
 
+    summary = data.groupby(config.obj_col).apply(ut.get_summary)
+    print("ZP Training data summary")
+    print(summary)
+    print()
+
     plot.plot_all_objects(
         data,
         ocol=config.obj_col,
@@ -130,6 +135,8 @@ def remove_planets(config: Box):
         mc_propagate=config.mc_prop,
         ndraws=config.mc_ndraws,
     )
+    print("The following known planets were removed:")
+    print(list(known_pl["pl_name"]))
 
     io.save_df(data, config.out_dir / "no_planets.csv", force=config.force)
 
@@ -256,7 +263,7 @@ def model_zp(config: Box):
         # If not optimization or sampling, use test values to evaluate model
         # and offsets
 
-        off_keys = ut.get_offset_keys(zpmodel)
+        off_keys = ut.get_substr_keys("gamma", zpmodel)
         off_vars = [zpmodel[k] for k in off_keys]
         off_values = np.array(pmx.eval_in_model(off_vars, model=zpmodel))
         off_series = pd.Series(off_values, index=off_keys)
@@ -323,20 +330,32 @@ def summary(config: Box):
         flatpost_med = flatpost.median(dim="draws")
 
         # Get offsets and sbutract
-        off_keys = ut.get_offset_keys(post=post)
+        off_keys = ut.get_substr_keys("gamma", post=post)
         offsets = flatpost_med[off_keys].to_pandas()
         offsets.index = offsets.index.str.split("_").str[0]
         offsets.index.name = "OBJECT"
+
+        # Get wn for record
+        wn_keys = ut.get_substr_keys("_wn", post=post)
+        wns = flatpost_med[wn_keys].to_pandas()
+        wns.index = wns.index.str.split("_").str[0]
+        wns.index.name = "OBJECT"
 
     elif map_path.is_file():
         # Load MAP and posterior
         with open(modeldir / "map.pickle", "rb") as pfile:
             map_soln = pickle.load(pfile)
 
-        off_keys = ut.get_offset_keys(map_dict=map_soln)
+        off_keys = ut.get_substr_keys("gamma", map_dict=map_soln)
         offsets = pd.Series({k: map_soln[k] for k in off_keys})
         offsets.index = offsets.index.str.split("_").str[0]
         offsets.index.name = "OBJECT"
+
+        # Get wn for record
+        wn_keys = ut.get_substr_keys("_wn", map_dict=map_soln)
+        wns = pd.Series({k: map_soln[k] for k in wn_keys})
+        wns.index = wns.index.str.split("_").str[0]
+        wns.index.name = "OBJECT"
 
         zpcurve = pd.read_csv(modeldir / "zp_map.csv")
 
@@ -411,6 +430,11 @@ def summary(config: Box):
         show=config.show,
     )
 
+    try:
+        ut.print_data_info(data, config, wn_dict=wns)
+    except NameError:
+        ut.print_data_info(data, config)
+
     # ZP periodogram
     zpcurve_in_data = zpcurve[mask]
     for zp, lab in zip([zpcurve, zpcurve_in_data], ["full", "in_data"]):
@@ -427,3 +451,7 @@ def summary(config: Box):
             plt.show()
         else:
             plt.close(fig)
+
+        print(f"Info for {lab} correction")
+        print(f"  Mean model error: {np.mean(zp[config.svrad_col])}")
+        print(f"  Median model error: {np.median(zp[config.svrad_col])}")

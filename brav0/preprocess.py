@@ -88,7 +88,6 @@ def filter_nan_values(data: DataFrame, used_cols: Optional[list[str]] = None):
         :param used_cols: Columns to check, None checks all, defaults to None
         :type used_cols: Optional[list[str]], optional
     """
-
     return data.dropna(subset=used_cols).copy()
 
 
@@ -101,7 +100,6 @@ def sort_dataset(data: DataFrame, time_col: str):
         :param time_col: Time column label
         :type time_col: str
     """
-
     return data.sort_values(time_col)
 
 
@@ -155,6 +153,7 @@ def filter_bad_ids(
         if not isinstance(keep_mask, Series) or keep_mask.dtype != "bool":
             raise TypeError("filter_method must return a pandas bool series")
 
+    print(f"{np.sum(~keep_mask)} bad IDs filtered")
     return data[keep_mask].copy()
 
 
@@ -189,6 +188,7 @@ def filter_sig_clip(
     else:
         clipped_mask = get_clip_mask(series, nsig)
 
+    print(f"{np.sum(~clipped_mask)} points removed from sigma clipping")
     return data[clipped_mask].copy()
 
 
@@ -196,6 +196,9 @@ def filter_snr_cut(
     data: DataFrame, snr_col: str, snr_goal_col: str, snr_frac: int = 0.7
 ):
     mask = (data[snr_col] / data[snr_goal_col]) >= snr_frac
+
+    print(f"{np.sum(~mask)} points removed from SNR cut")
+
     return data[mask].copy()
 
 
@@ -233,6 +236,8 @@ def filter_equant(
         qval = series.quantile(quant)
         mask = series <= qval
 
+    print(f"{np.sum(~mask)} points removed from error quantile cut")
+
     return data[mask]
 
 
@@ -266,6 +271,7 @@ def cleanup(
 ):
 
     # TODO: A lot of the checks here should be in their respective mask func
+    ilength = len(data)
     if "nan" in plist:
         data = filter_nan_values(data, used_cols)
 
@@ -311,6 +317,9 @@ def cleanup(
                 equant_cut,
                 group_name=group_col,
             )
+    flength = len(data)
+
+    print(f"Total {ilength-flength} (non-binned) points removed by cleanup.")
 
     return data
 

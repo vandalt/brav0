@@ -242,18 +242,42 @@ def get_config_params(config: Box):
         )
 
 
-def get_offset_keys(
+def get_substr_keys(
+    substr: str,
     model: Optional[ZeroPointModel] = None,
     post: Optional[Dataset] = None,
     map_dict: Optional[dict] = None,
 ) -> list[str]:
     if model is not None:
-        keys = [k for k in model.named_vars.keys() if "gamma" in k]
+        keys = [k for k in model.named_vars.keys() if substr in k]
     elif post is not None:
-        keys = [k for k in post.data_vars.keys() if "gamma" in k]
+        keys = [k for k in post.data_vars.keys() if substr in k]
     elif map_dict is not None:
-        keys = [k for k in map_dict.keys() if "gamma" in k]
+        keys = [k for k in map_dict.keys() if substr in k]
     else:
         raise TypeError("One of model or post is required.")
 
     return keys
+
+
+def print_data_info(
+    data: DataFrame, config: Box, wn_dict: Optional[dict[str, float]] = None
+):
+    for obj in data.index.get_level_values("OBJECT").unique():
+        odata = data.loc[obj]
+        print(f"Info for {obj}")
+        print(f"  Mean RV error: {np.mean(odata[config.svrad_col])}")
+        print(f"  Median RV error: {np.median(odata[config.svrad_col])}")
+        print(f"  RV scatter: {np.std(odata[config.svrad_col])}")
+        print(f"  White noise term: {wn_dict[obj]}")
+
+
+def get_summary(group):
+
+    d = dict()
+    d["npts"] = group.shape[0]
+    d["range"] = group.rjd.max() - group.rjd.min()
+    d["vrad_std"] = group.vrad.std()
+    d["svrad_mean"] = group.svrad.mean()
+
+    return pd.Series(d, index=list(d))
