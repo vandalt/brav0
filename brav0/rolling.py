@@ -6,6 +6,7 @@ from pymc3.theanof import take_along_axis
 from theano.tensor.var import TensorConstant, TensorVariable
 
 import brav0.utils as ut
+from brav0.lexsort_op import lexsort
 
 
 def wmed(
@@ -48,8 +49,11 @@ def wmed(
         # FIXME: Not sure how to get theano to check the if every time,
         # always ordering for now
         # if not tt.all(tt.ge(tt.extra_ops.diff(values), 0)):
-        # inds = lexsort((weights, values), axis=diff_ax)[0]
-        inds = tt.argsort(values, axis=diff_ax)
+        # NOTE: lexsort is a custom op implemented here, but might be included
+        # in aesara later. Results are consistent with numpy.
+        # It is slow, but argsort (from aesara is slow as well)
+        inds = lexsort((weights, values), axis=diff_ax)[0]
+        # inds = tt.argsort(values, axis=diff_ax)
         values = take_along_axis(values, inds, axis)
         weights = take_along_axis(weights, inds, axis)
         # values = values[inds]
