@@ -3,7 +3,7 @@ Functions to read and write ZP calibration data
 """
 import os
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import pandas as pd
 from astropy.table import Table
@@ -37,8 +37,13 @@ def source_tables(
     return pd.concat(data_dict, names=[file_col, row_col])
 
 
-def load_df(path: Union[str, Path]) -> DataFrame:
-    return pd.read_csv(path, index_col=[0, 1])
+def load_df(
+    path: Union[str, Path], sort_col: Optional[str] = None
+) -> DataFrame:
+    data = pd.read_csv(path, index_col=[0, 1])
+    if sort_col is not None:
+        data = data.sort_values(sort_col)
+    return data
 
 
 def save_df(data, path: Union[str, Path], force: bool = False) -> None:
