@@ -41,7 +41,20 @@ def preprocess(config: Box):
     if config.verbose:
         print("Raw dataframe loaded")
 
-    data_clean = pp.preprocess(
+    # Extra nan filtering to plot raw data (helpful for raw series comparison)
+    data_no_nan = pp.filter_nan_values(data_raw, used_cols=config.used_cols)
+    plot.plot_all_objects(
+        data_no_nan,
+        ocol=config.file_col,
+        tcol=config.time_col,
+        rvcol=config.vrad_col,
+        ervcol=config.svrad_col,
+        out_dir=config.out_dir / "raw_plots",
+        orientation="vertical",
+        show=config.show,
+    )
+
+    data_clean = pp.cleanup(
         data_raw,
         plist=config.pp_list,
         bad_id_url=config.bad_id_url,
@@ -76,6 +89,17 @@ def preprocess(config: Box):
     if config.verbose:
         print("Preprocessing done")
 
+    plot.plot_all_objects(
+        data,
+        ocol=config.obj_col,
+        tcol=config.time_col,
+        rvcol=config.vrad_col,
+        ervcol=config.svrad_col,
+        out_dir=config.out_dir / "pp_plots",
+        orientation="vertical",
+        show=config.show,
+    )
+
     io.save_df(data, config.out_dir / "preprocessed.csv", force=config.force)
     if config.verbose:
         print("Preprocessed data saved")
@@ -108,6 +132,17 @@ def remove_planets(config: Box):
     )
 
     io.save_df(data, config.out_dir / "no_planets.csv", force=config.force)
+
+    plot.plot_all_objects(
+        data,
+        ocol=config.obj_col,
+        tcol=config.time_col,
+        rvcol=config.vrad_col,
+        ervcol=config.svrad_col,
+        out_dir=config.out_dir / "no_planets",
+        orientation="vertical",
+        show=config.show,
+    )
 
 
 def model_zp(config: Box):
@@ -363,7 +398,7 @@ def summary(config: Box):
         ervcol=config.svrad_col,
         out_dir=modeldir / "object_plots_data",
         orientation="vertical",
-        show=config.show
+        show=config.show,
     )
     plot.plot_all_objects(
         resids_df,
@@ -373,7 +408,7 @@ def summary(config: Box):
         ervcol=config.svrad_col,
         out_dir=modeldir / "object_plots_residuals",
         orientation="vertical",
-        show=config.show
+        show=config.show,
     )
 
     # ZP periodogram

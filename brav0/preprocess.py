@@ -248,7 +248,7 @@ PP_CLEAN_FUNCTIONS = {
 }
 
 
-def preprocess(
+def cleanup(
     data: DataFrame,
     plist: list[str] = None,
     bad_id_url: Optional[str] = None,
