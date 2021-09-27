@@ -39,6 +39,12 @@ psr_parent.add_argument(
     action="store_true",
     help="Force overwrite if the directory or file already exists.",
 )
+psr_parent.add_argument(
+    "-s",
+    "--show",
+    action="store_true",
+    help="Show summary plots in addition to saving them.",
+)
 
 
 def new_subpsr(name, **kwargs):
@@ -113,12 +119,6 @@ psr_summary = new_subpsr(
 )
 psr_summary.add_argument(
     "modeldir", help="Directory where the model results are saved."
-)
-psr_summary.add_argument(
-    "-s",
-    "--show",
-    action="store_true",
-    help="Show summary plots in addition to saving them.",
 )
 psr_summary.set_defaults(func=driver.summary)
 
