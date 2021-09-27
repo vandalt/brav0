@@ -1,0 +1,95 @@
+# Column names from the RV files all go here
+# In  YAML, the & allows to define an anchor and re-use the values later
+time_col: &time_col rjd
+vrad_col: &vrad_col vrad
+svrad_col: &svrad_col svrad
+snr_col: &snr_col SNRCOL
+snrgoal_col: &snrgoal_col SNRGOAL
+id_filter_col: &id_filter_col FILENAME
+
+# This specifies which columns are used in the original files
+# Useful if have many NaNs in other columns but don't consider them in filtering
+# Good practice: reference all columns above in this list
+used_cols: [*time_col, *vrad_col, *svrad_col, *snr_col, *snrgoal_col, *id_filter_col]
+
+# Label of new columns created in the combined dataframe
+file_col: RVFILE
+row_col: ROW
+obj_col: OBJECT
+
+verbose: False
+
+# Input file pattern
+in_pattern: "/path/to/data/*.rdb"
+# Parent directory of this configuration. This will have subdirs for
+# various models run in the same configuration
+out_dir: "/path/to/outdir"
+
+# Pre-processing steps to run
+pp_list: ["nan", "sort", "sigma", "ID", "SNR", "error"]
+# URL to fetch a list of bad IDs (simple example link for format)
+bad_id_url: "https://docs.google.com/spreadsheets/d/1WMuvP2DZmCCjAggPzeXYea6wk_I5SAxvdM9kah8CFko/gviz/tq?tqx=out:csv&sheet=0"
+# Sigma clipping
+clip_nsig: 3.0
+# SNR goal fraction accepted
+snr_frac: 0.7
+# Error quantile rejected
+err_quant_cut: 0.95
+
+# Info for data binning
+bin_data: True
+# Value/error pairs for weighted mean that don't start with (s)vrad_col (usually activity indicators)
+extra_wmean_pairs:
+  fwhm: sig_fwhm
+
+# Info about targets used to train the ZP
+# List of targets
+target_list:
+  - Star1
+  - Star2
+  - Star3
+# Map object name from the dataset to object name on exoplanet archive
+# 'GL' -> 'GJ ' is done automatically, no need to specifiy here
+# Feel free to open PR/open an issue for recurring patterns that could be automated
+archive_dict:
+  StarA: Star A
+
+# We can specify extra info to override/supplement exoplanet archive
+obj_extra_info:
+  "Star1":
+    # This overrides the default archive reference for this whole system
+    "reference": "Alternative 2020"
+  "Star2":
+    "known_pl":
+      # This overrides mid-transit time (useful if not available) for one planet
+      "c":
+        "pl_tranmid": 2400000.00
+        "pl_tranmiderr1": 0.1
+        "pl_tranmiderr2": -0.15
+
+# Settings to remove known planets (monte carlo error propagation)
+mc_prop: True
+mc_ndraws: 5000
+
+# Model parameters can either be a dctionary or an extra file
+model_parameters: parameters.yml
+optimize: True
+sample: True
+tune: 500
+draws: 500
+
+# Extra config for arviz sumary plots
+arviz_kwargs:
+  # Variable name (patterns)  to plot or not to plot (with ~ in front)
+  var_names:
+    - "~pred"
+    - "~pred_std"
+    - "~bkg"
+    - "~rv_model"
+    - "~dvdt"
+    - "~curv"
+    - "~_wn"
+    - "~logsigma"
+    - "~logrho"
+  # How to filter variable (like is for part of the name)
+  filter_vars: like

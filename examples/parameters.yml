@@ -1,0 +1,36 @@
+# This top-level dict is the full model parameter set
+model_parameters:
+  # The parameters for a GP model can be put here
+  gp:
+    logsigma:
+      dist: Uniform
+      kwargs: {lower: -5.0, upper: 5.0, testval: 0.5}
+    logrho:
+      dist: Uniform
+      kwargs: {lower: -8.0, upper: 8.0, testval: 2.0}
+  # This key is mandatory to specify parameter for all objects at once
+  general_object_parameters:
+    rv:
+      gamma:
+        # Data normal uses data mean and std. dev. to define prior
+        dist: DataNormal
+        kwargs: {data_used: "vrad", nsigma: 5.0}
+      logwn:
+        dist: Uniform
+        kwargs: {lower: -5.0, upper: 5.0}
+      # An alternative would be fixed parameters
+      # gamma:
+      #   dist: DataFixed
+      #   kwargs: {data_used: "vrad", error_used: "svrad"}
+      # wn:
+      #   dist: Fixed
+      #   kwargs: {"value": 0.0}
+    # We can also specify parameters per object
+  star1:
+    rv:
+      gamma:
+        dist: "Fixed"
+        kwargs: {"value": 100}
+      logwn:
+        dist: "Uniform"
+        kwargs: {"lower": -5.0, "upper": 5.0}
