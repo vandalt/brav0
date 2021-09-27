@@ -225,7 +225,7 @@ def model_zp(config: Box):
         off_vars = [zpmodel[k] for k in off_keys]
         off_values = np.array(pmx.eval_in_model(off_vars, model=zpmodel))
         off_series = pd.Series(off_values, index=off_keys)
-        off_series.index = offsets.index.str.split("_").str[0]
+        off_series.index = off_series.index.str.split("_").str[0]
         off_series.index.name = "OBJECT"
         off_series.to_csv(model_dir / "offsets_test.csv")
         pred = pmx.eval_in_model(zpmodel.pred, model=zpmodel)
@@ -242,33 +242,153 @@ def model_zp(config: Box):
 
 def summary(config: Box):
 
-    # Load MAP and posterior
-    # with open(config.modeldir / "map.pickle", "rb") as pfile:
-    #     map_soln = pickle.load(pfile)
     modeldir = Path(config.modeldir)
-    post = xr.open_dataset(modeldir / "posterior.nc")
+    map_path = modeldir / "map.pickle"
+    post_path = modeldir / "posterior.nc"
+    test_path = modeldir / "zp_test.csv"
 
-    az_summary = az.summary(post, **config.arviz_kwargs)
-    print(az_summary)
-
-    plot.plot_trace(
-        post, **config.arviz_kwargs, savepath=modeldir / "trace.pdf"
+    data = io.load_df(
+        config.out_dir / "no_planets.csv", sort_col=config.time_col
     )
+
+    if post_path.is_file():
+        post = xr.open_dataset(modeldir / "posterior.nc")
+
+        az_summary = az.summary(post, **config.arviz_kwargs)
+        print(az_summary)
+
+        # MCMC plots
+        # Trace
+        plot.plot_trace(
+            post, **config.arviz_kwargs, savepath=modeldir / "trace.pdf"
+        )
+        if config.show:
+            plt.show()
+        else:
+            plt.close()
+
+        # Corner plot
+        plot.plot_corner(
+            post,
+            savepath=modeldir / "corner.pdf",
+            **config.arviz_kwargs,
+            plot_datapoints=False,  # Many parameters: datapoints crash corner
+        )
+        if config.show:
+            plt.show()
+        else:
+            plt.close()
+
+        # Load zero-point
+        zpcurve = pd.read_csv(modeldir / "zp_med_model.csv")
+
+        # Subtract offsets from data
+        flatpost = post.stack(draws=("chain", "draw"))
+        # Get quantiles
+        flatpost_med = flatpost.median(dim="draws")
+
+        # Get offsets and sbutract
+        off_keys = ut.get_offset_keys(post=post)
+        offsets = flatpost_med[off_keys].to_pandas()
+        offsets.index = offsets.index.str.split("_").str[0]
+        offsets.index.name = "OBJECT"
+
+    elif map_path.is_file():
+        # Load MAP and posterior
+        with open(modeldir / "map.pickle", "rb") as pfile:
+            map_soln = pickle.load(pfile)
+
+        off_keys = ut.get_offset_keys(map_dict=map_soln)
+        offsets = pd.Series({k: map_soln[k] for k in off_keys})
+        offsets.index = offsets.index.str.split("_").str[0]
+        offsets.index.name = "OBJECT"
+
+        zpcurve = pd.read_csv(modeldir / "zp_map.csv")
+
+    elif test_path.is_file():
+        offsets = pd.read_csv(
+            modeldir / "offsets_test.csv", squeeze=True, index_col=0
+        )
+        zpcurve = pd.read_csv(modeldir / "zp_test.csv")
+    else:
+        raise FileNotFoundError(
+            "There does not seem to be any model output to summarize."
+        )
+
+    data_no_offsets = data.copy()
+    data_no_offsets.vrad = (data_no_offsets.vrad - offsets).astype(float)
+    # TODO: Get residuals (from function, and save)
+    mask = np.isin(zpcurve[config.time_col], data_no_offsets[config.time_col])
+    resids_rv = (
+        data_no_offsets[config.vrad_col].values
+        - zpcurve.loc[mask, config.vrad_col]
+    ).values
+    resids_df = data_no_offsets.copy()
+    resids_df[config.vrad_col] = resids_rv
+
+    # Plot data, model and residuals
+    fig, axs = plt.subplots(
+        nrows=2,
+        ncols=1,
+        sharex=True,
+        gridspec_kw={"height_ratios": [2, 1], "hspace": 0.0},
+    )
+
+    axrv, axres = axs
+    plot.plot_all(data_no_offsets, ax=axrv)
+    plot.plot_pred(
+        zpcurve[config.time_col],
+        zpcurve[config.vrad_col],
+        zpcurve[config.svrad_col],
+        ax=axrv,
+    )
+    axrv.set_ylabel("RV [m/s]")
+    # Plot residuals
+    axres.axhline(0.0, linestyle="--", color="r")
+    plot.plot_all(resids_df, ax=axres)
+    axres.set_ylabel("O-C [m/s]")
+    axres.set_xlabel("RJD")
+    plt.tight_layout()
+    plt.savefig(modeldir / "pred.pdf")
     if config.show:
         plt.show()
+    else:
+        plt.close(fig)
 
-    # For many model_parameters, plot_datapoints crashes
-    plot.plot_corner(
-        post,
-        savepath=modeldir / "corner.pdf",
-        **config.arviz_kwargs,
-        plot_datapoints=False,
+    plot.plot_all_objects(
+        data_no_offsets,
+        ocol=config.obj_col,
+        tcol=config.time_col,
+        rvcol=config.vrad_col,
+        ervcol=config.svrad_col,
+        out_dir=modeldir / "object_plots_data",
+        orientation="vertical",
+        show=config.show
     )
-    if config.show:
-        plt.show()
+    plot.plot_all_objects(
+        resids_df,
+        ocol=config.obj_col,
+        tcol=config.time_col,
+        rvcol=config.vrad_col,
+        ervcol=config.svrad_col,
+        out_dir=modeldir / "object_plots_residuals",
+        orientation="vertical",
+        show=config.show
+    )
 
-    # Show plot of zero-point with data
-    flatpost = post.stack(draws=("chain", "draw"))
-    # Get quantiles
-    flatpost_quant = flatpost.quantile([0.16, 0.50, 0.84], dim="draws")
-    pred_med = flatpost_quant["pred"].values
+    # ZP periodogram
+    zpcurve_in_data = zpcurve[mask]
+    for zp, lab in zip([zpcurve, zpcurve_in_data], ["full", "in_data"]):
+        freq, pwr = plot.plot_series_periodogram(
+            zp[config.time_col],
+            zp[config.vrad_col],
+            zp[config.svrad_col],
+            orientation="vertical",
+        )
+        plt.tight_layout()
+        plt.savefig(modeldir / f"perio_{lab}.pdf")
+        np.savetxt(modeldir / f"perio_{lab}.txt", np.array([freq, pwr]).T)
+        if config.show:
+            plt.show()
+        else:
+            plt.close(fig)

@@ -13,6 +13,8 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from xarray.core.dataset import Dataset
 
+from brav0.model import ZeroPointModel
+
 
 def pathglob(pattern: Union[str, Path]) -> list[str]:
     """
@@ -238,3 +240,20 @@ def get_config_params(config: Box):
         raise TypeError(
             "model_parameters should be a dictionary or a path to a file"
         )
+
+
+def get_offset_keys(
+    model: Optional[ZeroPointModel] = None,
+    post: Optional[Dataset] = None,
+    map_dict: Optional[dict] = None,
+) -> list[str]:
+    if model is not None:
+        keys = [k for k in model.named_vars.keys() if "gamma" in k]
+    elif post is not None:
+        keys = [k for k in post.data_vars.keys() if "gamma" in k]
+    elif map_dict is not None:
+        keys = [k for k in map_dict.keys() if "gamma" in k]
+    else:
+        raise TypeError("One of model or post is required.")
+
+    return keys

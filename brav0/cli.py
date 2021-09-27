@@ -141,6 +141,5 @@ if __name__ == "__main__":
     config = config_override(config, args)
     # Ensure output directory is a path
     config.out_dir = Path(config.out_dir)
-    # import ipdb; ipdb.set_trace()
 
     args.func(config)
