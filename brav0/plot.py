@@ -38,18 +38,18 @@ def plot_all(data: DataFrame, dist: bool = True, alpha=1.0, ax=None):
             )
 
 
-def plot_pred(tpred, pred, pred_std, ax=None):
+def plot_pred(tpred, pred, pred_std, ax=None, color="r", label=None):
     if ax is None:
         ax = plt
     # plt.errorbar(model.t, model.vrad, yerr=model.svrad, fmt="k.", capsize=2)
-    ax.plot(tpred, pred, zorder=100, color="r")
+    ax.plot(tpred, pred, zorder=100, color=color, label=label)
     art = ax.fill_between(
         tpred,
         pred - pred_std,
         pred + pred_std,
         alpha=0.5,
         zorder=100,
-        color="r",
+        color=color,
     )
     art.set_edgecolor("none")
 
