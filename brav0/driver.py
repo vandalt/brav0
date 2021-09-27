@@ -140,6 +140,11 @@ def remove_planets(config: Box):
 
     io.save_df(data, config.out_dir / "no_planets.csv", force=config.force)
 
+    summary = data.groupby(config.obj_col).apply(ut.get_summary)
+    print("ZP Training data summary (planets removed)")
+    print(summary)
+    print()
+
     plot.plot_all_objects(
         data,
         ocol=config.obj_col,
@@ -390,12 +395,26 @@ def summary(config: Box):
 
     axrv, axres = axs
     plot.plot_all(data_no_offsets, ax=axrv)
-    plot.plot_pred(
-        zpcurve[config.time_col],
-        zpcurve[config.vrad_col],
-        zpcurve[config.svrad_col],
-        ax=axrv,
-    )
+    if (
+        not zpcurve[config.time_col]
+        .isin(data_no_offsets[config.time_col])
+        .all()
+    ):
+        plot.plot_pred(
+            zpcurve[config.time_col],
+            zpcurve[config.vrad_col],
+            zpcurve[config.svrad_col],
+            ax=axrv,
+        )
+    else:
+        axrv.errorbar(
+            zpcurve[config.time_col],
+            zpcurve[config.vrad_col],
+            yerr=zpcurve[config.svrad_col],
+            fmt="r^",
+            markersize=5,
+            capsize=2,
+        )
     axrv.set_ylabel("RV [m/s]")
     # Plot residuals
     axres.axhline(0.0, linestyle="--", color="r")

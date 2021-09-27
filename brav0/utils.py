@@ -269,7 +269,8 @@ def print_data_info(
         print(f"  Mean RV error: {np.mean(odata[config.svrad_col])}")
         print(f"  Median RV error: {np.median(odata[config.svrad_col])}")
         print(f"  RV scatter: {np.std(odata[config.svrad_col])}")
-        print(f"  White noise term: {wn_dict[obj]}")
+        if wn_dict is not None:
+            print(f"  White noise term: {wn_dict[obj]}")
 
 
 def get_summary(group):

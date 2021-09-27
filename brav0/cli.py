@@ -97,6 +97,7 @@ def main():
         "-m" "--roll-method",
         dest="roll_method",
         type=str,
+        default="wmean",
         choices=["mean", "median", "wmean", "wmedian"],
         help="Method to calculate rolling values.",
     )
