@@ -52,7 +52,12 @@ def get_bad_id_list(
     :rtype: pd.Series
     """
     # fetch data
-    data = requests.get(url)
+    try:
+        data = requests.get(url)
+    except requests.exceptions.RequestException:
+        warnings.warn("Could not load bad id list, returning an empty list")
+        return []
+
     df = Table.read(data.text, format="ascii").to_pandas()
 
     if check_cols is None:
