@@ -206,8 +206,7 @@ class RollingModel(ZeroPointModel):
             self.vrad_lab,
             self.svrad_lab,
         ]
-        data = data[keep_labels]
-        self.data = data
+        self.data = self.data[keep_labels]
 
     def get_zp_curve(self) -> DataFrame:
 
@@ -288,7 +287,7 @@ class RollingModelPymc(ZeroPointModel):
 
         self.window = window / 2
         self.center = center
-        self.tpred = data[self.time_lab].values.copy()
+        self.tpred = self.data[self.time_lab].values.copy()
         if method in self._KNOWN_METHODS:
             self.method = method
         else:
