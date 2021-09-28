@@ -15,6 +15,11 @@ cd brav0
 python -m pip install -U -e ".[dev]"
 ```
 
+_Note: In both cases, as of release 0.1, the development pace will probably be
+relatively fast for a while so users should update often, either by pulling
+from the upstream Github repository or by upgrading with `python -m pip install
+-U brav0`.
+
 ## Using _brav0_
 _brav0_ is accessible as a command line script or as a Python library. The
 script requires a configuration file. There are example config files as well as
@@ -57,7 +62,7 @@ data. The config file specifies if we do MCMC, MAP optimization, or just use a
 fixed model (recommended only when all parameters have deterministic values).
 Here is an example where we fit a GP with a Matern 3/2 kernel:
 ```
-brav0 model config.yml Mater32
+brav0 model config.yml Matern32
 ```
 This produces the model curve and the optimization or sampling results in a
 directory with the model name (or other subdirectory when using the `-o`
