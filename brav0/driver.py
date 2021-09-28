@@ -394,7 +394,7 @@ def summary(config: Box):
     )
 
     axrv, axres = axs
-    plot.plot_all(data_no_offsets, ax=axrv)
+    plot.plot_all(data_no_offsets, ax=axrv, alpha=0.6)
     if (
         not zpcurve[config.time_col]
         .isin(data_no_offsets[config.time_col])
@@ -412,13 +412,16 @@ def summary(config: Box):
             zpcurve[config.vrad_col],
             yerr=zpcurve[config.svrad_col],
             fmt="r^",
-            markersize=5,
+            markersize=3,
             capsize=2,
+            zorder=100,
         )
     axrv.set_ylabel("RV [m/s]")
     # Plot residuals
     axres.axhline(0.0, linestyle="--", color="r")
     plot.plot_all(resids_df, ax=axres)
+    nobj = len(data.groupby("OBJECT"))
+    axrv.legend(ncol=nobj // 5)
     axres.set_ylabel("O-C [m/s]")
     axres.set_xlabel("RJD")
     plt.tight_layout()
