@@ -192,6 +192,16 @@ def model_zp(config: Box):
             svrad_label=config.svrad_col,
             obj_label=config.obj_col,
         )
+    elif config.model == "ExpQuad":
+        zpmodel = model.GPModel(
+            data,
+            "ExpQuad",
+            model_parameters,
+            time_label=config.time_col,
+            vrad_label=config.vrad_col,
+            svrad_label=config.svrad_col,
+            obj_label=config.obj_col,
+        )
     elif config.model.lower() == "rolling":
         zpmodel = model.RollingModelPymc(
             data,

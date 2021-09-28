@@ -90,7 +90,7 @@ def main():
     psr_model.add_argument(
         "model",
         type=str,
-        choices=["Matern32", "SumMatern32", "Rolling"],
+        choices=["Matern32", "SumMatern32", "ExpQuad", "Rolling"],
         help="Zero-point model name.",
     )
     psr_model.add_argument(

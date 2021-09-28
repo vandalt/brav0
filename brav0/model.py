@@ -427,7 +427,11 @@ class GPModel(ZeroPointModel, Model):
                     noise=tt.sqrt(self.sys_diag)
                     # "obs", self.t[:, None], resid_rv, noise=np.sqrt(diag_rv)
                 )
-                # pred, pred_var = self.gp.predictt(self.t[:, None], diag=True)
+                pred, pred_var = self.gp.predictt(
+                    self.tpred[:, None], diag=True
+                )
+                pm.Deterministic("pred", pred)
+                pm.Deterministic("pred_std", np.sqrt(pred_var))
             else:
                 raise ValueError(
                     f"gp_kernel must be None, or one of {list(KERNELS)}"
