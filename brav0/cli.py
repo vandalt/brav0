@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentError, ArgumentParser, Namespace
 from pathlib import Path
 
 from box import Box
@@ -29,7 +29,9 @@ def main():
 
     # The parent parser to all subparsers with common options
     psr_parent = ArgumentParser(add_help=False)
-    psr_parent.add_argument("config", type=str, help="Configuration file.")
+    config_arg = psr_parent.add_argument(
+        "config", type=str, help="Configuration file."
+    )
     psr_parent.add_argument(
         "-v",
         "--verbose",
@@ -134,6 +136,12 @@ def main():
     args = psr.parse_args()
 
     # Whatever we do, load config first and override relevant args
+    if "config" not in args:
+        raise ArgumentError(
+            config_arg,
+            "A configuration file must be specified after the command.\n"
+            " Example: brav0 {command} config.yml"
+        )
     config = ut.load_config(args.config)
     config = config_override(config, args)
     # Ensure output directory is a path
