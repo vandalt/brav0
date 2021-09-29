@@ -76,10 +76,10 @@ This will save plots in the model directory.
 
 ## Why brav0 ?
 Fitting RV zero-points can be done with relatively simple tools. _brav0_ was
-originally writtent to explore the use of Gaussian processes to model RV
+originally written to explore the use of Gaussian processes to model RV
 zero-points. When fitting a GP along with parameters for each standard
 (calibration) star, the number of parameter can be high, such that sampling the
 posterior distribution efficiently is challenging. _brav0_ uses PyMC3 to perform
 gradient-based inference (other backends are not excluded, contributions are
-welcome). By using `exoplanet` and `celerite2`, _brav0_ enables efficient
+welcome!). By using `exoplanet` and `celerite2`, _brav0_ enables efficient
 inference to derive a zero-point correction error estimates.
