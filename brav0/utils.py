@@ -8,9 +8,11 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 import yaml
+from astropy.table import Table
 from box import Box
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
+from tqdm import tqdm
 from xarray.core.dataset import Dataset
 
 from brav0.model import ZeroPointModel
@@ -26,6 +28,18 @@ def pathglob(pattern: Union[str, Path]) -> list[str]:
     :rtype: list[str]
     """
     return glob.glob(str(pattern))
+
+
+def generate_flist(pattern: Union[str, Path], ext: str = ".rdb") -> list[str]:
+    pattern = Path(pattern)
+    if pattern.is_dir():
+        # Glob all files in directory
+        flist = pathglob(pattern / f"*{ext}")
+    else:
+        # Glob pattern directly
+        flist = pathglob(pattern)
+
+    return flist
 
 
 def append_to_dirpath(path: Path, extra: str) -> Path:
@@ -153,6 +167,58 @@ def get_binned_data(
         binned_data = grouped_data.agg(agg_funcs)
 
     return binned_data
+
+
+def bin_tbl(
+    tbl: Table,
+    wmean_pairs: dict[str, str],
+) -> Table:
+
+    tbl2_dict = {colname: [] for colname in tbl.colnames}
+
+    dates = tbl["DATE-OBS"]
+    udates = np.unique(dates)
+
+    for i in tqdm(range(len(udates))):
+        epoch = udates[i]
+        epoch_mask = dates == epoch
+
+        itbl = tbl[epoch_mask]
+
+        for colname in tbl.colnames:
+
+            if colname in wmean_pairs:
+                # get value and error for this udate
+                vals = itbl[colname]
+                errs = itbl[wmean_pairs[colname]]
+                # get error^2
+                errs2 = errs ** 2
+                # deal with all nans
+                if np.sum(np.isfinite(errs2)) == 0:
+                    value = np.nan
+                    err_value = np.nan
+                else:
+                    # get 1/error^2
+                    value = np.nansum(vals / errs2) / np.nansum(1 / errs2)
+                    err_value = np.sqrt(1 / np.nansum(1 / errs2))
+                # push into table
+                tbl2_dict[colname].append(value)
+                tbl2_dict[wmean_pairs[colname]].append(err_value)
+            # -----------------------------------------------------------------
+            # if no weighted mean indication, try to mean the column or if not
+            #   just take the first value
+            elif colname not in wmean_pairs.values():
+                # try to produce the mean of rdb table
+                # noinspection PyBroadException
+                try:
+                    tbl2_dict[colname].append(np.mean(itbl[colname]))
+                except TypeError:
+                    tbl2_dict[colname].append(itbl[colname][0])
+    tbl2 = Table()
+    for colname in tbl2_dict:
+        tbl2[colname] = tbl2_dict[colname]
+
+    return tbl2
 
 
 def get_obj_vals(
