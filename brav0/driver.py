@@ -12,6 +12,7 @@ from box import Box
 import brav0.preprocess as pp
 import brav0.utils as ut
 from brav0 import io, model, plot, rmplanets
+from brav0.correction import correct_dataset
 
 
 def source(config: Box):
@@ -487,3 +488,22 @@ def summary(config: Box):
         print(f"Info for {lab} correction")
         print(f"  Mean model error: {np.mean(zp[config.svrad_col])}")
         print(f"  Median model error: {np.median(zp[config.svrad_col])}")
+
+
+def correct(config: Box):
+    if config.verbose:
+        print(f"Starting correction of files matching {config.rvpattern}")
+    if not config.ext.startswith("."):
+        config.ext = "." + config.ext
+    correct_dataset(
+        config.zpcpath,
+        config.rv_pattern,
+        ext=config.ext,
+        zp_version=config.zp_version,
+        force=config.force,
+        save_bin=config.save_bin,
+        safe_full=config.save_full,
+        vrad_label=config.vrad_col,
+        svrad_label=config.svrad_col,
+        extra_pairs=config.extra_wmean_pairs,
+    )

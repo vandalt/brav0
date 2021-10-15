@@ -133,6 +133,51 @@ def main():
     )
     psr_summary.set_defaults(func=driver.summary)
 
+    psr_correct = _new_subpsr(
+        "correct", description="Apply the ZPC to one or multiple RV datasets."
+    )
+    psr_correct.add_argument(
+        "zpcpath",
+        dest="zpc_path",
+        help="Path to the ZPC csv file",
+    )
+    psr_correct.add_argument(
+        "rvpattern",
+        dest="rv_pattern",
+        help="Pattern representing the full path to RV files we want to correct",
+    )
+    psr_correct.add_argument(
+        "-b, --save-bin",
+        dest="save_bin",
+        action="store_true",
+        help="Whether we should also bin the files per day after correction and save separately",
+    )
+    psr_correct.add_argument(
+        "-s, --skip-full",
+        dest="save_full",
+        action="store_false",
+        help="Whether the full corrected file should be saved (useful to get binned only)",
+    )
+    psr_correct.add_argument(
+        "-f, --force",
+        action="store_true",
+        help="Overwrite existing files",
+    )
+    psr_correct.add_argument(
+        "-z, --zp-version",
+        dest="zp_version",
+        type=str,
+        default=None,
+        help="Name of the ZPC version shown in corrected file names",
+    )
+    psr_correct.add_argument(
+        "-e, --ext",
+        type=str,
+        default="rdb",
+        help="Extension of the files if rvpattern is a directory",
+    )
+    psr_correct.set_defaults(func=driver.correct)
+
     args = psr.parse_args()
 
     # Whatever we do, load config first and override relevant args
@@ -140,7 +185,7 @@ def main():
         raise ArgumentError(
             config_arg,
             "A configuration file must be specified after the command.\n"
-            " Example: brav0 {command} config.yml"
+            " Example: brav0 {command} config.yml",
         )
     config = ut.load_config(args.config)
     config = config_override(config, args)
