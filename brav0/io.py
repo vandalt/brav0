@@ -14,25 +14,19 @@ import brav0.utils as ut
 
 def source_tables(
     pattern: Union[str, Path],
-    in_ext=".rdb",
+    in_ext: str = ".rdb",
     file_col: str = "RVFILE",
     row_col: str = "ROW",
 ) -> DataFrame:
 
-    pattern = Path(pattern)
-    if pattern.is_dir():
-        # Glob all files in directory
-        flist = ut.pathglob(pattern / f"*{in_ext}")
-    else:
-        # Glob pattern directly
-        flist = ut.pathglob(pattern)
+    flist = ut.generate_flist(pattern, ext=in_ext)
 
-        # Load bunch of files to put in directory
-        data_dict = dict()
-        for fpath in flist:
-            fbase = os.path.basename(fpath)
-            ftype = os.path.splitext(fbase)[-1][1:]
-            data_dict[fbase] = Table.read(fpath, format=ftype).to_pandas()
+    # Load bunch of files to put in directory
+    data_dict = dict()
+    for fpath in flist:
+        fbase = os.path.basename(fpath)
+        ftype = os.path.splitext(fbase)[-1][1:]
+        data_dict[fbase] = Table.read(fpath, format=ftype).to_pandas()
 
     return pd.concat(data_dict, names=[file_col, row_col])
 
@@ -55,3 +49,7 @@ def save_df(data, path: Union[str, Path], force: bool = False) -> None:
         )
 
     data.to_csv(path)
+
+
+def load_zp(zpfile: Union[str, Path]) -> DataFrame:
+    return pd.read_csv(zpfile)
