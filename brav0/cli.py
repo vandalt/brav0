@@ -137,13 +137,11 @@ def main():
         "correct", description="Apply the ZPC to one or multiple RV datasets."
     )
     psr_correct.add_argument(
-        "zpcpath",
-        dest="zpc_path",
+        "zpc_path",
         help="Path to the ZPC csv file",
     )
     psr_correct.add_argument(
-        "rvpattern",
-        dest="rv_pattern",
+        "rv_pattern",
         help="Pattern representing the full path to RV files we want to correct",
     )
     psr_correct.add_argument(
@@ -159,19 +157,16 @@ def main():
         help="Whether the full corrected file should be saved (useful to get binned only)",
     )
     psr_correct.add_argument(
-        "-f, --force",
-        action="store_true",
-        help="Overwrite existing files",
-    )
-    psr_correct.add_argument(
-        "-z, --zp-version",
+        "-z",
+        "--zp-version",
         dest="zp_version",
         type=str,
         default=None,
         help="Name of the ZPC version shown in corrected file names",
     )
     psr_correct.add_argument(
-        "-e, --ext",
+        "-e",
+        "--ext",
         type=str,
         default="rdb",
         help="Extension of the files if rvpattern is a directory",

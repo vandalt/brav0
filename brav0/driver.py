@@ -495,14 +495,16 @@ def correct(config: Box):
         print(f"Starting correction of files matching {config.rvpattern}")
     if not config.ext.startswith("."):
         config.ext = "." + config.ext
+    if config.rv_pattern.startswith("~"):
+        config.rv_pattern = str(Path.home() / config.rv_pattern[2:])
     correct_dataset(
-        config.zpcpath,
+        config.zpc_path,
         config.rv_pattern,
         ext=config.ext,
         zp_version=config.zp_version,
         force=config.force,
         save_bin=config.save_bin,
-        safe_full=config.save_full,
+        save_full=config.save_full,
         vrad_label=config.vrad_col,
         svrad_label=config.svrad_col,
         extra_pairs=config.extra_wmean_pairs,

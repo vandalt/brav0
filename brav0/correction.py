@@ -41,8 +41,8 @@ def correct_file(
     # We need a zp version to append to corrected RV files
     if zp_version is None:
         # If long path, assume brav0's default structure to get version name
-        if len(zp_path.parents) > 1:
-            zp_version = zp_path.parts[-2]
+        if len(zp_path.parents) > 2:
+            zp_version = "_".join(zp_path.parts[-3:-1])
         elif str(zp_path).count("_") == 1:
             zp_version = str(zp_path).split("_")[1]
         else:
@@ -73,7 +73,7 @@ def correct_file(
     out_needed = not out_file.is_file() and save_full  #
 
     # If out and bin are not needed and force is off, we're done
-    if not (out_needed or not bin_needed or force):
+    if not (out_needed or bin_needed or force):
         print("All files exist. Nothing to do here.")
         return
 
