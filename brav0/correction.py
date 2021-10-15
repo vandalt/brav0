@@ -31,7 +31,7 @@ def correct_file(
     save_bin: bool = False,
     save_full: bool = True,
     vrad_label: str = "vrad",
-    svrad_lab: str = "svrad",
+    svrad_label: str = "svrad",
     extra_pairs: Optional[dict[str, str]] = None,
 ):
 
@@ -91,7 +91,7 @@ def correct_file(
             cn for cn in tbl.colnames if cn.startswith(vrad_label)
         ]
         svrad_colnames = [
-            cn for cn in tbl.colnames if cn.startswith(svrad_lab)
+            cn for cn in tbl.colnames if cn.startswith(svrad_label)
         ]
         wmean_pairs = dict(zip(vrad_colnames, svrad_colnames))
         if out_file.stem.startswith("lbl"):
@@ -126,8 +126,11 @@ def apply_correction(zpc: DataFrame, tbl: Table) -> Table:
     tbl_corr = tbl.copy()
 
     # Correction of quantites and add ZP
+    tbl_corr["vrad_pre_zpc"] = vrad.copy()
+    tbl_corr["svrad_pre_zpc"] = svrad.copy()
     tbl_corr["vrad"] = vrad - vrad_zp_resamp
     tbl_corr["svrad"] = np.sqrt(svrad ** 2 + svrad_zp_resamp ** 2)
+    # TODO: Keep pre-correction RVs as well
     tbl_corr["zpc"] = vrad_zp_resamp
     tbl_corr["szpc"] = svrad_zp_resamp
 
