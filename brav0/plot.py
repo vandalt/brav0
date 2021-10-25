@@ -10,7 +10,14 @@ from astropy.timeseries import LombScargle
 from pandas.core.frame import DataFrame
 
 
-def plot_all(data: DataFrame, dist: bool = True, alpha=1.0, ax=None):
+def plot_all(
+    data: DataFrame,
+    dist: bool = True,
+    alpha=1.0,
+    ax=None,
+    y_col: str = "vrad",
+    yerr_col: str = "svrad",
+):
     if ax is None:
         ax = plt
 
@@ -18,8 +25,8 @@ def plot_all(data: DataFrame, dist: bool = True, alpha=1.0, ax=None):
     if not dist:
         ax.errorbar(
             data.rjd,
-            data.vrad,
-            data.svrad,
+            data[y_col],
+            data[yerr_col],
             fmt="k.",
             capsize=csize,
             alpha=alpha,
@@ -29,8 +36,8 @@ def plot_all(data: DataFrame, dist: bool = True, alpha=1.0, ax=None):
             dat_obj = data.loc[obj]
             ax.errorbar(
                 dat_obj.rjd,
-                dat_obj.vrad,
-                dat_obj.svrad,
+                dat_obj[y_col],
+                dat_obj[yerr_col],
                 fmt=".",
                 capsize=csize,
                 label=obj,
