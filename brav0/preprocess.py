@@ -317,6 +317,7 @@ def cleanup(
                 equant_cut,
                 group_name=group_col,
             )
+
     flength = len(data)
 
     print(f"Total {ilength-flength} (non-binned) points removed by cleanup.")

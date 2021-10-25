@@ -416,8 +416,6 @@ class GPModel(ZeroPointModel, Model):
                     return_var=True
                     # resid_rv, t=self.tpred, return_var=True
                 )
-                pm.Deterministic("pred", pred)
-                pm.Deterministic("pred_std", np.sqrt(pred_var))
             elif kernel in PYMC3_KERNELS:
                 self.gp = pm.gp.Marginal(cov_func=self.gpmodel.kernel)
                 self.gp.marginal_likelihood(
@@ -430,9 +428,9 @@ class GPModel(ZeroPointModel, Model):
                 pred, pred_var = self.gp.predictt(
                     self.tpred[:, None], diag=True
                 )
-                pm.Deterministic("pred", pred)
-                pm.Deterministic("pred_std", np.sqrt(pred_var))
             else:
                 raise ValueError(
                     f"gp_kernel must be None, or one of {list(KERNELS)}"
                 )
+            pm.Deterministic("pred", pred)
+            pm.Deterministic("pred_std", np.sqrt(pred_var))
