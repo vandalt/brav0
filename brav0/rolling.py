@@ -51,7 +51,7 @@ def wmed(
         # if not tt.all(tt.ge(tt.extra_ops.diff(values), 0)):
         # NOTE: lexsort is a custom op implemented here, but might be included
         # in aesara later. Results are consistent with numpy.
-        # It is slow, but argsort (from aesara is slow as well)
+        # It is slow, but argsort (from aesara) is slow as well
         inds = lexsort((weights, values), axis=diff_ax)[0]
         # inds = tt.argsort(values, axis=diff_ax)
         values = take_along_axis(values, inds, axis)

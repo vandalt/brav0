@@ -333,6 +333,7 @@ def index_with_obj(
     file_obj_sep: str = "_",
     file_col: str = "RVFILE",
     obj_col: str = "OBJECT",
+    obj_col_backup: str = "_INITIAL_BRAV0",
     row_col: str = "ROW",
     force_self_mask: bool = False,
 ) -> DataFrame:
@@ -351,17 +352,30 @@ def index_with_obj(
     :type file_obj_ind: int
     :param file_obj_sep: Separator between filename parts, defaults to "_"
     :type file_obj_sep: str, optional
+    :param obj_col: Column label to use for object names in output file
+    :type obj_col: str, optional
+    :param obj_col_backup: If there is already an obj_col column,
+                           add obj_col_backup to its name.
+    :type obj_col_backup: str, optional
     """
 
     df = df.copy()
 
-    # NOTE: this is a strong assumption on raw format/filenames
-    #       can think of ways  to improve it in the future
     if obj_col in df.columns:
-        msg = f"There is already an {obj_col} column, doing nothing."
-        warnings.warn(msg, category=RuntimeWarning)
-        return
+        msg = f"There is already an {obj_col} column, moving it to {obj_col}_{obj_col_backup}."
+        new_obj_col = obj_col + obj_col_backup
+        if new_obj_col not in df:
+            warnings.warn(msg, category=RuntimeWarning)
+            df = df.rename(columns={obj_col: new_obj_col})
+        else:
+            raise ValueError(
+                f"Both {obj_col} and {new_obj_col} already exist in the dataframe. "
+                "Provide new value for one of them."
+            )
 
+    # NOTE: Also strong assumption. Straightforward default would be something
+    # like OBJNAME.ext, with support for other ways to get name (block below
+    # or header key)
     # Get filenames in pandas index object and split/index to get obj names
     file_lvl = df.index.get_level_values(file_col)
     objects = (

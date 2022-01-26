@@ -10,6 +10,9 @@ from radvel.kepler import rv_drive
 from radvel.orbit import timetrans_to_timeperi
 from scipy.stats import norm, truncnorm
 
+# TODO: Remove radvel dependency ?
+
+
 ARCHIVE_URL = "https://exoplanetarchive.ipac.caltech.edu/TAP"
 
 # Keys from the archive
