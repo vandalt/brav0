@@ -3,7 +3,7 @@ import pickle
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 import numpy as np
 import pandas as pd
@@ -56,7 +56,7 @@ def append_to_dirpath(path: Path, extra: str) -> Path:
     return path.parent / (path.name + extra)
 
 
-def get_wmean(data: DataFrame, col_pairs: dict[str, str]) -> Series:
+def get_wmean(data: DataFrame, col_pairs: Dict[str, str]) -> Series:
     """
     Get the weighted mean and error of a dataframe using column pairs
 
@@ -100,7 +100,7 @@ def get_wmean(data: DataFrame, col_pairs: dict[str, str]) -> Series:
 
 
 def get_binned_data(
-    data: DataFrame, wmean_pairs: Optional[dict[str, str]] = None
+    data: DataFrame, wmean_pairs: Optional[Dict[str, str]] = None
 ) -> DataFrame:
     """
     Bin dataframe with three possible operations:
@@ -171,7 +171,7 @@ def get_binned_data(
 
 def bin_tbl(
     tbl: Table,
-    wmean_pairs: dict[str, str],
+    wmean_pairs: Dict[str, str],
 ) -> Table:
 
     tbl2_dict = {colname: [] for colname in tbl.colnames}
@@ -327,7 +327,7 @@ def get_substr_keys(
 
 
 def print_data_info(
-    data: DataFrame, config: Box, wn_dict: Optional[dict[str, float]] = None
+    data: DataFrame, config: Box, wn_dict: Optional[Dict[str, float]] = None
 ):
     for obj in data.index.get_level_values("OBJECT").unique():
         odata = data.loc[obj]

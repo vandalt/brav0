@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Dict
 
 import numpy as np
 import pandas as pd
@@ -390,7 +390,7 @@ def bin_dataset(
     data: DataFrame,
     vrad_col: str,
     svrad_col: str,
-    extra_pairs: Optional[dict[str, str]] = None,
+    extra_pairs: Optional[Dict[str, str]] = None,
 ):
     """
     Get binned dataset
@@ -403,7 +403,7 @@ def bin_dataset(
     :type svrad_col: str
     :param extra_pairs: Dictionary of extra value-error column pairs that
                         don't start with 0, defaults to None
-    :type extra_pairs: Optional[dict[str, str]], optional
+    :type extra_pairs: Optional[Dict[str, str]], optional
     """
 
     vrad_cols = data.columns[data.columns.str.startswith(vrad_col)].tolist()
@@ -460,7 +460,7 @@ def keep_obj_list(
 def add_archive_name(
     data: DataFrame,
     obj_label: str,
-    extra_maps: Optional[dict[str, str]] = None,
+    extra_maps: Optional[Dict[str, str]] = None,
 ) -> DataFrame:
     """
     Add column with exoplanet archive names to dataframes.

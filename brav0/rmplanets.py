@@ -63,13 +63,13 @@ def get_archive_map(data: DataFrame, row_col: Optional[str] = "ROW") -> Series:
 
 
 def get_archive_ref_cfg(
-    info: dict[str, dict], archive_map: Mapping[str, str]
+    info: Dict[str, dict], archive_map: Mapping[str, str]
 ) -> Series:
     """
     Get mapping from archive name to refrence, using a config dict.
 
     :param info: Info configuration dictionary with object names as keys
-    :type info: dict[str, dict]
+    :type info: Dict[str, dict]
     :param archive_map: Mapping from object names to archive names
     :type archive_map: Mapping[str, str]
     :return: [TODO:description]
@@ -167,13 +167,13 @@ def select_refs(df: DataFrame, ref_cfg: Mapping):
 
 
 def get_custom_archive(
-    info: dict[str, dict], archive_map: Mapping[str, str]
-) -> dict[str, dict]:
+    info: Dict[str, dict], archive_map: Mapping[str, str]
+) -> Dict[str, dict]:
     """
     Convert custom archive dict from using object name to using archive name.
 
     :param info: Info configuration dictionary with object names as keys
-    :type info: dict[str, dict]
+    :type info: Dict[str, dict]
     :param archive_map: Mapping from object names to archive names
     :type archive_map: Mapping[str, str]
     :return: Dictionary mapping archive name to custom archive parameter
