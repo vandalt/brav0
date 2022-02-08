@@ -407,7 +407,11 @@ def remove_one_planet(
         prop_dict = dict(zip(ORB_KEYS, mc_propagate))
     except TypeError:
         prop_dict = dict(zip(ORB_KEYS, [mc_propagate] * 5))
-    params = get_orbit_params(planet, prop_dict=prop_dict, ndraws=ndraws)
+
+    try:
+        params = get_orbit_params(planet, prop_dict=prop_dict, ndraws=ndraws)
+    except:
+        print(f"Fit failed for planet {planet}")
 
     # make sure time is in the right frame for radvel rv_drive
     t = data[t_label].values  # rv_drive takes an array
