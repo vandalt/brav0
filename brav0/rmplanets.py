@@ -446,6 +446,7 @@ def remove_one_planet(
         )
         kep_err_lo = kep_med - kep_16th
         kep_err_hi = kep_84th - kep_med
+        # FIXME: This returns only one number as the error!!!
         kep_err = np.mean([kep_err_hi, kep_err_lo])
 
         # Substract and propagate the MC enveloppe
